@@ -1,6 +1,8 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import getDataUri from "../utils/datauri.js";
+import cloudinary from "../utils/cloudinary.js"
 export const register = async (req, res) => {
     try {
         const { fullname, email, phoneNumber, password, role ,file} = req.body;
@@ -106,11 +108,18 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { fullname, email, phoneNumber, bio, skills } = req.body;
-        
+        const file=req.file;
+        const fileUri = getDataUri(file);
+       
+        const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+            resource_type: "raw"
+        });
+       
         let skillsArray;
         if(skills){
             skillsArray = skills.split(",");
         }
+        
         const userId = req.id; // middleware authentication
         let user = await User.findById(userId);
 
@@ -126,6 +135,20 @@ export const updateProfile = async (req, res) => {
         if(phoneNumber)  user.phoneNumber = phoneNumber
         if(bio) user.profile.bio = bio
         if(skills) user.profile.skills = skillsArray
+        if(cloudResponse){
+            user.profile.resume = cloudResponse.secure_url // save the cloudinary url
+            user.profile.resumeOriginalName = file.originalname // Save the original file name
+        }
+   
+        // const cloudResponse = await cloudinary.uploader.upload_stream((error, result) => {
+        //     if (error) {
+        //         console.log("Upload error: ", error);
+        //     } else {
+        //         user.profile.resume = result.secure_url;
+        //         user.profile.resumeOriginalName = file.originalname;
+        //     }
+        // }).end(file.buffer);
+
         await user.save();
 
         user = {
@@ -140,7 +163,8 @@ export const updateProfile = async (req, res) => {
         return res.status(200).json({
             message:"Profile updated successfully.",
             user,
-            success:true
+            success:true,
+            pdfUrl: cloudResponse.secure_url,
         })
     } catch (error) {
         console.log(error);

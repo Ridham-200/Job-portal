@@ -5,7 +5,7 @@ import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js"
 export const register = async (req, res) => {
     try {
-        const { fullname, email, phoneNumber, password, role ,file} = req.body;
+        const { fullname, email, phoneNumber, password, role } = req.body;
          
         if (!fullname || !email || !phoneNumber || !password || !role) {
             return res.status(400).json({
@@ -14,7 +14,9 @@ export const register = async (req, res) => {
             });
         };
 
-
+        const file = req.file;
+        const fileUri = getDataUri(file);
+        const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
         const user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({
@@ -30,6 +32,9 @@ export const register = async (req, res) => {
             phoneNumber,
             password: hashedPassword,
             role,
+            profile:{
+                profilePhoto:cloudResponse.secure_url,
+            }
         });
 
         return res.status(201).json({

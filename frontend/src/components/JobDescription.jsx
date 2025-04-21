@@ -26,6 +26,7 @@ const JobDescription = () => {
                 setIsApplied(true); // Update the local state
                 const updatedSingleJob = {...singleJob, applications:[...singleJob.applications,{applicant:user?._id}]}
                 dispatch(setSingleJob(updatedSingleJob)); // helps us to real time UI update
+                
                 toast.success(res.data.message);
 
             }
@@ -49,7 +50,8 @@ const JobDescription = () => {
         }
         fetchSingleJob(); 
     },[jobId,dispatch, user?._id]);
-
+// console.log(singleJob?.experience);
+console.log(singleJob);
     return (
         <div className='max-w-7xl mx-auto my-10'>
             <div className='flex items-center justify-between'>

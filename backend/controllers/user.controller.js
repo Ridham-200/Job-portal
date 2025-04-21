@@ -110,68 +110,128 @@ export const logout = async (req, res) => {
         console.log(error);
     }
 }
+// export const updateProfile = async (req, res) => {
+//     try {
+//         const { fullname, email, phoneNumber, bio, skills } = req.body;
+//         const file=req.file;
+//         const fileUri = getDataUri(file);
+       
+//         const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+//             resource_type: "raw"
+//         });
+       
+//         let skillsArray;
+//         if(skills){
+//             skillsArray = skills.split(",");
+//         }
+        
+//         const userId = req.id; // middleware authentication
+//         let user = await User.findById(userId);
+
+//         if (!user) {
+//             return res.status(400).json({
+//                 message: "User not found.",
+//                 success: false
+//             })
+//         }
+//         // updating data
+//         if(fullname) user.fullname = fullname
+//         if(email) user.email = email
+//         if(phoneNumber)  user.phoneNumber = phoneNumber
+//         if(bio) user.profile.bio = bio
+//         if(skills) user.profile.skills = skillsArray
+//         if(cloudResponse){
+//             user.profile.resume = cloudResponse.secure_url // save the cloudinary url
+//             user.profile.resumeOriginalName = file.originalname // Save the original file name
+//         }
+   
+//         // const cloudResponse = await cloudinary.uploader.upload_stream((error, result) => {
+//         //     if (error) {
+//         //         console.log("Upload error: ", error);
+//         //     } else {
+//         //         user.profile.resume = result.secure_url;
+//         //         user.profile.resumeOriginalName = file.originalname;
+//         //     }
+//         // }).end(file.buffer);
+
+//         await user.save();
+
+//         user = {
+//             _id: user._id,
+//             fullname: user.fullname,
+//             email: user.email,
+//             phoneNumber: user.phoneNumber,
+//             role: user.role,
+//             profile: user.profile
+//         }
+
+//         return res.status(200).json({
+//             message:"Profile updated successfully.",
+//             user,
+//             success:true,
+//             pdfUrl: cloudResponse.secure_url,
+//         })
+//     } catch (error) {
+//         console.log(error);
+//     }
+// }
+
 export const updateProfile = async (req, res) => {
     try {
         const { fullname, email, phoneNumber, bio, skills } = req.body;
-        const file=req.file;
-        const fileUri = getDataUri(file);
-       
-        const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
-            resource_type: "raw"
-        });
-       
-        let skillsArray;
-        if(skills){
-            skillsArray = skills.split(",");
-        }
-        
-        const userId = req.id; // middleware authentication
+        const file = req.file;
+        const userId = req.id; // Assuming this is set via authentication middleware
+
+        // Fetch the user
         let user = await User.findById(userId);
-
         if (!user) {
-            return res.status(400).json({
+            return res.status(404).json({
+                success: false,
                 message: "User not found.",
-                success: false
-            })
+            });
         }
-        // updating data
-        if(fullname) user.fullname = fullname
-        if(email) user.email = email
-        if(phoneNumber)  user.phoneNumber = phoneNumber
-        if(bio) user.profile.bio = bio
-        if(skills) user.profile.skills = skillsArray
-        if(cloudResponse){
-            user.profile.resume = cloudResponse.secure_url // save the cloudinary url
-            user.profile.resumeOriginalName = file.originalname // Save the original file name
-        }
-   
-        // const cloudResponse = await cloudinary.uploader.upload_stream((error, result) => {
-        //     if (error) {
-        //         console.log("Upload error: ", error);
-        //     } else {
-        //         user.profile.resume = result.secure_url;
-        //         user.profile.resumeOriginalName = file.originalname;
-        //     }
-        // }).end(file.buffer);
 
+        // Update basic fields if provided
+        if (fullname) user.fullname = fullname;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (bio) user.profile.bio = bio;
+        if (skills) user.profile.skills = skills.split(",").map(skill => skill.trim());
+
+        // If a resume file is uploaded
+        if (file) {
+            const fileUri = getDataUri(file);
+            const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+                resource_type: "raw"
+            });
+
+            user.profile.resume = cloudResponse.secure_url;
+            user.profile.resumeOriginalName = file.originalname;
+        }
+
+        // Save the updated user
         await user.save();
 
-        user = {
-            _id: user._id,
-            fullname: user.fullname,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            role: user.role,
-            profile: user.profile
-        }
-
+        // Send back updated user (excluding sensitive info)
         return res.status(200).json({
-            message:"Profile updated successfully.",
-            user,
-            success:true,
-            pdfUrl: cloudResponse.secure_url,
-        })
+            success: true,
+            message: "Profile updated successfully.",
+            user: {
+                _id: user._id,
+                fullname: user.fullname,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                role: user.role,
+                profile: user.profile
+            }
+        });
+
     } catch (error) {
-        console.log(error);
+        console.error("Update Profile Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while updating the profile.",
+            error: error.message
+        });
     }
-}
+};

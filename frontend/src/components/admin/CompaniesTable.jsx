@@ -15,58 +15,70 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 function CompaniesTable() {
-  const { companies ,searchCompanyByText } = useSelector((store) => store.company);
+  const { companies, searchCompanyByText } = useSelector((store) => store.company);
   const [filterCompany, setFilterCompany] = useState(companies);
   const navigate = useNavigate();
-    useEffect(()=>{
-        const filteredCompany = companies.length >= 0 && companies.filter((company)=>{
-            if(!searchCompanyByText){
-                return true
-            };
-            return company?.name?.toLowerCase().includes(searchCompanyByText.toLowerCase());
 
-        });
-        setFilterCompany(filteredCompany);
-    },[companies,searchCompanyByText])
+  useEffect(() => {
+    const filteredCompany =
+      companies.length >= 0 &&
+      companies.filter((company) => {
+        if (!searchCompanyByText) {
+          return true;
+        }
+        return company?.name?.toLowerCase().includes(searchCompanyByText.toLowerCase());
+      });
+    setFilterCompany(filteredCompany);
+  }, [companies, searchCompanyByText]);
+
   return (
-    <div>
-      <Table>
-        <TableCaption>A list of your recent registered companies</TableCaption>
+    <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+      <Table className="w-full border-collapse">
+        <TableCaption className="text-gray-500">
+          A list of your recent registered companies
+        </TableCaption>
         <TableHeader>
-          <TableRow>
-            <TableHead>Logo</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Action</TableHead>
+          <TableRow className="bg-gray-100">
+            <TableHead className="py-3">Logo</TableHead>
+            <TableHead className="py-3">Name</TableHead>
+            <TableHead className="py-3">Date</TableHead>
+            <TableHead className="py-3 text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filterCompany?.map((company) => (
-            <tr>
-              <TableCell>
+          {filterCompany?.map((company, index) => (
+            <TableRow
+              key={company._id}
+              className={`transition-colors ${
+                index % 2 === 0 ? "bg-gray-50" : "bg-white"
+              } hover:bg-gray-100`}
+            >
+              <TableCell className="py-3">
                 <Avatar>
                   <AvatarImage src={company.logo} />
                 </Avatar>
               </TableCell>
-              <TableCell>{company.name}</TableCell>
-              <TableCell>{company.createdAt.split("T")[0]}</TableCell>
+              <TableCell className="font-medium">{company.name}</TableCell>
+              <TableCell className="text-gray-600">
+                {company.createdAt.split("T")[0]}
+              </TableCell>
               <TableCell className="text-right cursor-pointer">
                 <Popover>
-                  <PopoverTrigger>
+                  <PopoverTrigger className="p-2 rounded-full hover:bg-gray-200 transition">
                     <MoreHorizontal />
                   </PopoverTrigger>
-                  <PopoverContent className="w-32">
+                  <PopoverContent className="w-36 shadow-lg border border-gray-200 rounded-lg p-2">
                     <div
-                        onClick={() => navigate(`/admin/companies/${company._id}`)}
-                      className="flex items-center gap-2 w-fit cursor-pointer"
+                      onClick={() => navigate(`/admin/companies/${company._id}`)}
+                      className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 transition cursor-pointer"
                     >
-                      <Edit2 className="w-4" />
-                      <span>Edit</span>
+                      <Edit2 className="w-4 text-purple-600" />
+                      <span className="text-sm">Edit</span>
                     </div>
                   </PopoverContent>
                 </Popover>
               </TableCell>
-            </tr>
+            </TableRow>
           ))}
         </TableBody>
       </Table>

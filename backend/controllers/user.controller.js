@@ -176,13 +176,72 @@ export const logout = async (req, res) => {
 //     }
 // }
 
+// export const updateProfile = async (req, res) => {
+//     try {
+//         const { fullname, email, phoneNumber, bio, skills } = req.body;
+//         const file = req.file;
+//         const userId = req.id; // Assuming this is set via authentication middleware
+
+//         // Fetch the user
+//         let user = await User.findById(userId);
+//         if (!user) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "User not found.",
+//             });
+//         }
+
+//         // Update basic fields if provided
+//         if (fullname) user.fullname = fullname;
+//         if (email) user.email = email;
+//         if (phoneNumber) user.phoneNumber = phoneNumber;
+//         if (bio) user.profile.bio = bio;
+//         if (skills) user.profile.skills = skills.split(",").map(skill => skill.trim());
+
+//         // If a resume file is uploaded
+//         if (file) {
+//             const fileUri = getDataUri(file);
+//             const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+//                 resource_type: "auto"
+//             });
+
+//             user.profile.resume = cloudResponse.secure_url;
+//             user.profile.resumeOriginalName = file.originalname;
+//         }
+
+//         // Save the updated user
+//         await user.save();
+
+//         // Send back updated user (excluding sensitive info)
+//         return res.status(200).json({
+//             success: true,
+//             message: "Profile updated successfully.",
+//             user: {
+//                 _id: user._id,
+//                 fullname: user.fullname,
+//                 email: user.email,
+//                 phoneNumber: user.phoneNumber,
+//                 role: user.role,
+//                 profile: user.profile
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error("Update Profile Error:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "An error occurred while updating the profile.",
+//             error: error.message
+//         });
+//     }
+// };
+
 export const updateProfile = async (req, res) => {
     try {
         const { fullname, email, phoneNumber, bio, skills } = req.body;
         const file = req.file;
-        const userId = req.id; // Assuming this is set via authentication middleware
+        const userId = req.id; // From middleware
 
-        // Fetch the user
         let user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
@@ -191,28 +250,32 @@ export const updateProfile = async (req, res) => {
             });
         }
 
-        // Update basic fields if provided
+        // Update basic fields
         if (fullname) user.fullname = fullname;
         if (email) user.email = email;
         if (phoneNumber) user.phoneNumber = phoneNumber;
         if (bio) user.profile.bio = bio;
         if (skills) user.profile.skills = skills.split(",").map(skill => skill.trim());
 
-        // If a resume file is uploaded
+        // If resume is uploaded
         if (file) {
             const fileUri = getDataUri(file);
             const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
                 resource_type: "raw"
             });
 
-            user.profile.resume = cloudResponse.secure_url;
+            const rawUrl = cloudResponse.secure_url;
+            const filename = encodeURIComponent(file.originalname);
+
+            // Generate downloadable version of resume URL
+            const downloadUrl = rawUrl.replace("/upload/", `/upload/fl_attachment:${filename}/`);
+
+            user.profile.resume = downloadUrl; // Save the download link
             user.profile.resumeOriginalName = file.originalname;
         }
 
-        // Save the updated user
         await user.save();
 
-        // Send back updated user (excluding sensitive info)
         return res.status(200).json({
             success: true,
             message: "Profile updated successfully.",
